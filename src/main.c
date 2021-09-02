@@ -97,10 +97,31 @@ int main(void){
     // load the image into memory
     /* SDL_Texture * texture = IMG_LoadTexture(rend, "resources/image.png"); */
 
+    /* ART */
+    Image play_button;
+    play_button.path = "resources/play_button.png";
+    play_button.texture = IMG_LoadTexture(rend, play_button.path);
+    SDL_QueryTexture(play_button.texture, NULL, NULL, &play_button.dest.w, &play_button.dest.h);
+    play_button.dest.w /= 2;
+    play_button.dest.h /= 2;
+    play_button.dest.x = ((WINDOW_WIDTH/2)-(play_button.dest.w/2));
+    play_button.dest.y = ((WINDOW_HEIGHT-90)+45)-(play_button.dest.h/2);
+
+    Image pause_button;
+    pause_button.path = "resources/pause_button.png";
+    pause_button.texture = IMG_LoadTexture(rend, pause_button.path);
+    SDL_QueryTexture(pause_button.texture, NULL, NULL, &pause_button.dest.w, &pause_button.dest.h);
+    pause_button.dest.w /= 2;
+    pause_button.dest.h /= 2;
+    pause_button.dest.x = ((WINDOW_WIDTH/2)-(pause_button.dest.w/2));
+    pause_button.dest.y = ((WINDOW_HEIGHT-90)+45)-(pause_button.dest.h/2);
+
     /* POS */
     Mix_Music * music = NULL;
-    Vector2 music_pos = {WINDOW_WIDTH/2, WINDOW_HEIGHT/2};
+    Vector2f music_pos = {(float)WINDOW_WIDTH/2, (float)WINDOW_HEIGHT/2};
+    Vector2f default_position = {(float)WINDOW_WIDTH/2, (float)WINDOW_HEIGHT/2};
     SDL_Rect background = {0, 0, WINDOW_WIDTH, WINDOW_HEIGHT};
+    SDL_Rect bar = {0, (WINDOW_HEIGHT-90), WINDOW_WIDTH, 90};
     /* * * */
 
     // Fonts
@@ -114,11 +135,9 @@ int main(void){
 	struct dirent *dir;
 	d = opendir(P);
 	while((dir = readdir(d)) != NULL){
-        char result[2048];
-        substr(result, dir->d_name, SDL_strlen(dir->d_name)-5, 5);
 		if ( !SDL_strncmp(dir->d_name, ".", 1) || !SDL_strncmp(dir->d_name, "..", 2) ){
 		} else {
-            if (!SDL_strncmp(result, ".flac", 5) || !SDL_strncmp(result, ".opus", 5) || !SDL_strncmp(result+1, ".wav", 4) || !SDL_strncmp(result+1, ".mp3", 4)){
+            if (!SDL_strncmp((dir->d_name+(SDL_strlen(dir->d_name)-5)), ".flac", 5) || !SDL_strncmp((dir->d_name+(SDL_strlen(dir->d_name)-5)), ".opus", 5) || !SDL_strncmp((dir->d_name+(SDL_strlen(dir->d_name)-4)), ".wav", 4) || !SDL_strncmp((dir->d_name+(SDL_strlen(dir->d_name)-4)), ".mp3", 4) || !SDL_strncmp((dir->d_name+(SDL_strlen(dir->d_name)-4)), ".ogg", 4)){
 			    n++;
             }
 		}
@@ -127,12 +146,10 @@ int main(void){
 	if (n < 1){ return EXIT_FAILURE; }
 	char *files[n];
 	while((dir = readdir(d)) != NULL){
-        char result[2048];
-        substr(result, dir->d_name, SDL_strlen(dir->d_name)-5, 5);
 		if ( !SDL_strncmp(dir->d_name, ".", 1) || !SDL_strncmp(dir->d_name, "..", 2) )
 		{}
 		else {
-            if (!SDL_strncmp(result, ".flac", 5) || !SDL_strncmp(result, ".opus", 5) || !SDL_strncmp(result+1, ".wav", 4) || !SDL_strncmp(result+1, ".mp3", 4)){
+            if (!SDL_strncmp((dir->d_name+(SDL_strlen(dir->d_name)-5)), ".flac", 5) || !SDL_strncmp((dir->d_name+(SDL_strlen(dir->d_name)-5)), ".opus", 5) || !SDL_strncmp((dir->d_name+(SDL_strlen(dir->d_name)-4)), ".wav", 4) || !SDL_strncmp((dir->d_name+(SDL_strlen(dir->d_name)-4)), ".mp3", 4) || !SDL_strncmp((dir->d_name+(SDL_strlen(dir->d_name)-4)), ".ogg", 4)){
 			    files[i]= dir->d_name;
 			    i++;
             }
@@ -164,6 +181,24 @@ int main(void){
             {
                 case SDL_QUIT:
                     close_requested = 1;
+                    break;
+
+                case SDL_MOUSEBUTTONUP:
+                    if (Ishovering(rend, win, play_button.dest.x, play_button.dest.y, play_button.dest.w, play_button.dest.h)){
+                        if (Mix_PausedMusic() == 0){
+                            Mix_PauseMusic();
+                        }else{
+                            Mix_ResumeMusic();
+                        }
+                    }
+                    break;
+                
+                case SDL_MOUSEWHEEL:
+                    if (event.wheel.y > 0 && (n * 40) > (WINDOW_HEIGHT-bar.h)){
+                        default_position.y -= 10;
+                    }else if (event.wheel.y < 0 && (n * 40) > (WINDOW_HEIGHT-bar.h)){
+                        default_position.y += 10;
+                    }
                     break;
                 
                 case SDL_KEYUP:
@@ -232,38 +267,49 @@ int main(void){
         SDL_RenderFillRect(rend, &background);
 
         for(i=0; i<n; i++){
-            SDL_Rect button_bounds = render_button(rend, win, font, 20, (music_pos.x), (music_pos.y), 255, 0, files[i]);
-            if (Clicked(rend, win, button_bounds.x, button_bounds.y, button_bounds.w, button_bounds.h) == 1){ // Doesn't work well
-                /* Play music */
-                char music_path[2048] = "\0";
-                SDL_strlcpy(music_path, P, 2048);
-                SDL_strlcat(music_path, files[i], 2048);
-                music = Mix_LoadMUS(music_path);
-                DEBUG;
-                if (!music){
-                    log(ERR, "Failed loading {%s} music file", music_path);
-                    close_requested = 1;
-                }else{
-                    log(SUCCESS, "Successfully loaded {%s} music file", music_path);
-                }
-                if (Mix_PlayingMusic() == 0){
-                    log(SUCCESS, "Now Playing : {%s}", music_path);
-                    Mix_PlayMusic(music, 0); // custom loops?
-                }else{
-                    if (Mix_PausedMusic() == 0){
-                        Mix_PauseMusic();
+            if (music_pos.y > -20 || music_pos.y < 1300){
+                SDL_Rect button_bounds = render_button(rend, win, font, 20, (music_pos.x), (music_pos.y), 255, 0, files[i]);
+                if (Clicked(rend, win, button_bounds.x, button_bounds.y, button_bounds.w, button_bounds.h) == 1){ // Doesn't work well
+                    /* Play music */
+                    char music_path[2048] = "\0";
+                    SDL_strlcpy(music_path, P, 2048);
+                    SDL_strlcat(music_path, files[i], 2048);
+                    music = Mix_LoadMUS(music_path);
+                    DEBUG;
+                    if (!music){
+                        log(ERR, "Failed loading {%s} music file", music_path);
+                        close_requested = 1;
                     }else{
-                        Mix_ResumeMusic();
+                        log(SUCCESS, "Successfully loaded {%s} music file", music_path);
+                    }
+                    if (Mix_PlayingMusic() == 0){
+                        log(SUCCESS, "Now Playing : {%s}", music_path);
+                        Mix_PlayMusic(music, 0); // custom loops?
+                    }else{
+                        if (Mix_PausedMusic() == 0){
+                            Mix_PauseMusic();
+                        }else{
+                            Mix_ResumeMusic();
+                        }
                     }
                 }
             }
 		    //printf("%d. [%s]\n", i+1, files[i]);
-            music_pos.y += 40;
+            music_pos.y += 40.0f;
 	    }
-        music_pos.x = (WINDOW_WIDTH/2);
-        music_pos.y = (WINDOW_HEIGHT/2);
+        music_pos.x = default_position.x;
+        music_pos.y = default_position.y;
 
         /* * * * * */
+
+        SDL_SetRenderDrawColor(rend, 5, 5, 5, 255);
+        SDL_RenderFillRect(rend, &bar);
+        
+        if (Mix_PausedMusic() == 0){
+            SDL_RenderCopy(rend, pause_button.texture, NULL, &pause_button.dest);
+        }else{
+            SDL_RenderCopy(rend, play_button.texture, NULL, &play_button.dest);
+        }
 
         // wait 1/60th of a second
         if ( (stopm = clock()) == -1){err("Failed ending fps timer.");}
