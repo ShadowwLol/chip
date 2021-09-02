@@ -4,6 +4,7 @@
 #include <SDL2/SDL_video.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
 #include <time.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_timer.h>
@@ -13,6 +14,7 @@
 #include "../include/logs.h"
 #include <SDL2/SDL_mixer.h>
 #include <dirent.h>
+#include <SDL2/SDL_stdinc.h>
 
 
 #if __WIN32
@@ -107,26 +109,33 @@ int main(void){
 
     /* Find music files  */
     char P[1024] = "/home/shadoww/Music/"; // Your own music path
-    int n=0, i=0;\
-	DIR *d;\
-	struct dirent *dir;\
-	d = opendir(P);\
-	while((dir = readdir(d)) != NULL) {\
-		if ( !strncmp(dir->d_name, ".", 1) || !strncmp(dir->d_name, "..", 2) )\
-		{\
-		} else {\
-			n++;\
-		}\
-	}\
-	rewinddir(d);\
+    int n=0, i=0;
+	DIR *d;
+	struct dirent *dir;
+	d = opendir(P);
+	while((dir = readdir(d)) != NULL){
+        char result[2048];
+        substr(result, dir->d_name, SDL_strlen(dir->d_name)-5, 5);
+		if ( !SDL_strncmp(dir->d_name, ".", 1) || !SDL_strncmp(dir->d_name, "..", 2) ){
+		} else {
+            if (!SDL_strncmp(result, ".flac", 5) || !SDL_strncmp(result, ".opus", 5) || !SDL_strncmp(result+1, ".wav", 4) || !SDL_strncmp(result+1, ".mp3", 4)){
+			    n++;
+            }
+		}
+	}
+	rewinddir(d);
 	if (n < 1){ return EXIT_FAILURE; }
 	char *files[n];
-	while((dir = readdir(d)) != NULL) {
-		if ( !strncmp(dir->d_name, ".", 1) || !strncmp(dir->d_name, "..", 2) )
+	while((dir = readdir(d)) != NULL){
+        char result[2048];
+        substr(result, dir->d_name, SDL_strlen(dir->d_name)-5, 5);
+		if ( !SDL_strncmp(dir->d_name, ".", 1) || !SDL_strncmp(dir->d_name, "..", 2) )
 		{}
 		else {
-			files[i]= dir->d_name;\
-			i++;
+            if (!SDL_strncmp(result, ".flac", 5) || !SDL_strncmp(result, ".opus", 5) || !SDL_strncmp(result+1, ".wav", 4) || !SDL_strncmp(result+1, ".mp3", 4)){
+			    files[i]= dir->d_name;
+			    i++;
+            }
 		}
 	}
 	rewinddir(d);
@@ -223,12 +232,12 @@ int main(void){
         SDL_RenderFillRect(rend, &background);
 
         for(i=0; i<n; i++){
-            render_button(rend, win, font, 20, (music_pos.x), (music_pos.y), 255, 0, files[i]);
-            if (ClickedText(rend, win, font, files[i], music_pos.x, music_pos.y) == 1){ // Doesn't work well
+            SDL_Rect button_bounds = render_button(rend, win, font, 20, (music_pos.x), (music_pos.y), 255, 0, files[i]);
+            if (Clicked(rend, win, button_bounds.x, button_bounds.y, button_bounds.w, button_bounds.h) == 1){ // Doesn't work well
                 /* Play music */
                 char music_path[2048] = "\0";
-                strcpy(music_path, P);
-                strcat(music_path, files[i]);
+                SDL_strlcpy(music_path, P, 2048);
+                SDL_strlcat(music_path, files[i], 2048);
                 music = Mix_LoadMUS(music_path);
                 DEBUG;
                 if (!music){
