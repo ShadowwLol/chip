@@ -14,14 +14,4 @@ void ToggleFullscreen(SDL_Window* Window){
     SDL_ShowCursor(1);
 }
 
-char * substr(char *destination, const char *source, int from, int len){
-    while (len > 0){
-        *destination = *(source + from);
-        destination++;
-        source++;
-        len--;
-    }
-    *destination = '\0';
-    return destination;
-}
  
