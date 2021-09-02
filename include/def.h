@@ -75,6 +75,7 @@ void font_create(SDL_Renderer *rend, char * path, SDL_Texture * texture, SDL_Rec
 int Ishovering( SDL_Renderer * rend, SDL_Window * win, int x, int y, unsigned int width, unsigned int height );
 int Clicked(SDL_Renderer * rend, SDL_Window * win, int x, int y, unsigned int width, unsigned int height);
 int ClickedText(SDL_Renderer * rend, SDL_Window * win, FC_Font * font, const char * text, float x, float y);
+char * substr(char *destination, const char *source, int from, int len);
 SDL_Rect render_button(SDL_Renderer * rend, SDL_Window * win, FC_Font * font, unsigned int ptsize, unsigned int x, unsigned int y, int current_button, int index, const char * text);
 Vector2 get_global_mouse_position();
 Vector2f get_logical_mouse_position(SDL_Renderer *renderer, SDL_Window *window);
